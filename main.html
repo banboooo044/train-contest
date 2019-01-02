@@ -1,0 +1,248 @@
+<!DOCTYPE HTML>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script src="name.txt"></script>
+<link rel="stylesheet" type="text/css" href="style1.css">
+</head>
+<body>
+<center><h1>遅延証明発行</h1></center>
+<br>
+<center><a href="#" class="square_btn" onclick="main();">発行する</a></center>
+<div id="t"></div>
+<script id="bus_location" src="./bus_stop_location.txt" ></script>
+<script id="train_location" src="./station_location.txt" ></script>
+<script>
+  DATA = {}
+  ALL_DATA = {}
+  var near_stop = [];
+  var candidate = [];
+  var cur_lat;
+  var cur_lon;
+  if (navigator.geolocation) {
+      alert("この端末では位置情報が取得できます");
+    // Geolocation APIに対応していない
+    } else {
+      alert("この端末では位置情報が取得できません");
+    }
+    // 現在地取得処理
+    function getPosition() {
+      document.open();
+      document.write("<center><h1>読み込み中(15秒ほどかかります)</h1></center>");
+      document.close();
+      console.log('TASKA');
+      return new Promise(function(resolve, reject) {
+          // 現在地を取得
+        navigator.geolocation.getCurrentPosition(
+        // 取得成功した場合
+        function(position) {
+            cur_lat = position.coords.latitude;
+            cur_lon = position.coords.longitude;
+            resolve(1);
+        },
+        // 取得失敗した場合
+        function(error) {
+          switch(error.code) {
+            case 1: //PERMISSION_DENIED
+              alert("位置情報の利用が許可されていません");
+              break;
+              case 2: //POSITION_UNAVAILABLE
+              alert("現在位置が取得できませんでした");
+              break;
+            case 3: //TIMEOUT
+              alert("タイムアウトになりました");
+              break;
+            default:
+              alert("その他のエラー(エラーコード:"+error.code+")");
+              break;
+          }
+        }
+       )
+      });
+    }
+
+    function getNearStop(){
+      console.log('TASKB');
+      return new Promise(function(resolve, reject) {
+        BUS.forEach(function(d){
+          if (!(d['lat'] == 0 || d['long'] == 0)){
+            near_stop.push([ Math.pow(Math.abs(d['lat']-cur_lat),2) + Math.pow(Math.abs(d['long']-cur_lon),2),d['name']]);
+          }
+        });
+
+        STATION.forEach(function(d){
+          if (!(d['lat'] == 0 || d['long'] == 0)){
+            near_stop.push([Math.pow(Math.abs(d['lat']-cur_lat),2) + Math.pow(Math.abs(d['long']-cur_lon),2),d['name']]);
+          }
+        })
+
+        near_stop.sort(function(a,b){
+           if( a[0] < b[0] ) return -1;
+           if( a[0] > b[0] ) return 1;
+           return 0;
+        });
+        console.log(near_stop);
+
+        resolve(1);
+      });
+    }
+
+  function getAPI(length=0) {
+    var API_END_POINT = "https://api-tokyochallenge.odpt.org/api/v4/";
+    var API_KEY = "&acl:consumerKey=c6cebfad880aa0a2fa834875a30620f15c1d90ec9b74271ca209dfa4f2b7faf3";
+    var kind1 = 'odpt:Bus?';
+    var kind2 = 'odpt:Train?';
+    $.getJSON(
+          API_END_POINT + kind1 + API_KEY,
+          function(data) {
+            //dataがサーバから受け取るjson値
+            data.forEach(function(block){
+                ALL_DATA[block["owl:sameAs"]] = block;
+                if ((("odpt:fromBusstopPole") in block) && (("odpt:toBusstopPole" in block))){
+                  if (!("odpt:fromBusstopPole" in DATA)) DATA[block["odpt:fromBusstopPole"]] = [];
+                  if (!("odpt:toBusstopPole" in DATA)) DATA[block["odpt:toBusstopPole"]] = [];
+                  DATA[block["odpt:fromBusstopPole"]].push(block["owl:sameAs"]);
+                  DATA[block["odpt:toBusstopPole"]].push(block["owl:sameAs"]);
+                }
+            });
+          }
+      );
+    $.getJSON(
+          API_END_POINT + kind2 + API_KEY,
+          function(data) {
+            //dataがサーバから受け取るjson値
+            data.forEach(function(block){
+                ALL_DATA[block["owl:sameAs"]] = block;
+                if ((("odpt:fromStation") in block) && (("odpt:toStation" in block))) {
+                  if (!("odpt:fromStation" in DATA)) DATA[block["odpt:fromStation"]] = [];
+                  if (!("odpt:toStation" in DATA)) DATA[block["odpt:toStation"]] = [];
+                  DATA[block["odpt:fromStation"]].push(block["owl:sameAs"]);
+                  DATA[block["odpt:toStation"]].push(block["owl:sameAs"]);
+                }
+            });
+          }
+      );
+    return Object.keys(DATA).length;
+  }
+
+  function initCycleAPI(){
+      console.log('TASKC');
+      return new Promise(function(resolve, reject) {
+        var now;
+        var prev = getAPI(0);
+        var timer1 = setInterval(function(){
+          now = getAPI(prev);
+          if (now == prev) {
+            clearInterval(timer1);
+            resolve(1);
+            console.log(now);
+          }
+          else prev = now;
+        },5000);
+      });
+  }
+
+  function N(word){
+      if (word in NAME) return NAME[word];
+      else return word; 
+  }
+
+  function showResult() {
+    console.log(near_stop);
+    document.open();
+    document.write("<link rel=\"stylesheet\" type=\"text/css\" href=\"style1.css\">");
+    document.write("乗車中の電車,バスを選択");
+    document.write("<form action=\"../cgi-bin/cgi-query.cgi\" method=\"post\">");
+      rec = []
+      candidate.forEach(function(id){
+        if (!(id in rec)){
+          rec.push(id);
+          if ("odpt:railway" in ALL_DATA[id]){
+              document.write("<input type=radio name=\"id\" value = " + id + " id = " + id + " /> ");
+              document.write("<label for= " + id + " class=\"label\">" + N(ALL_DATA[id]["odpt:railway"]) + "<br>");
+              document.write(N(ALL_DATA[id]["odpt:terminalStation"]) + "行き<br>遅延 : " + ALL_DATA[id]["odpt:delay"] + "秒<br>");
+              if (ALL_DATA[id]["odpt:fromStation"] == null) {
+                  document.write("現在 : " + N(ALL_DATA[id]["odpt:toStation"]) + " 停車中<br></label><br>");
+              }
+              else if (ALL_DATA[id]["odpt:toStation"] == null) {
+                  document.write("現在 : " + N(ALL_DATA[id]["odpt:fromStation"]) + " 停車中<br></label><br>");
+              }
+              else {
+                  document.write("現在 : " + N(ALL_DATA[id]["odpt:toStation"]) + " ---> " + N(ALL_DATA[id]["odpt:fromStation"]) + " 間走行中" + "<br></label><br>");
+              }
+          }
+          else if ("odpt:busroute" in ALL_DATA[id]){
+              document.write("<input type=radio name=\"id\" value = " + id + " id = " + id + " />");
+              document.write("<label for=" + id + " class=\"label\">" + N(ALL_DATA[id]["odpt:busroute"]) + "<br>");
+              document.write(N(ALL_DATA[id]["odpt:terminalBusstopPole"]) + "行き<br>");
+              if (ALL_DATA[id]["odpt:toBusstopPole"] == null) {
+                  document.write(N(ALL_DATA[id]["odpt:fromBusstopPole"]) + " 停車中</label><br>");
+              }
+              else {                                                    
+                  document.write(N(ALL_DATA[id]["odpt:fromBusstopPole"]) + " ---> " + N(ALL_DATA[id]["odpt:toBusstopPole"]) + "間走行中" + "</label><br>");
+              }
+          }
+        }
+      });
+    document.write("<br><center><input class=\"button\" type=submit value=\"決定\"></center>");
+    document.write("</form>");
+    document.close();
+    return new Promise(function(resolve, reject) {
+      resolve(1);
+    });
+   }
+
+  function sequenceTasks(tasks) {
+      function recordValue(results, value) {
+          results.push(value);
+          return results;
+      }
+      var pushValue = recordValue.bind(null, []);
+      return tasks.reduce(function (promise, task) {
+          return promise.then(task).then(pushValue);
+      }, Promise.resolve());
+  }
+
+  function getCandidate(){
+    console.log('TASKD');
+     return new Promise(function(resolve, reject) {
+        for (var i = 0;candidate.length < 5;i++){
+          if (near_stop[i][1] in DATA) {
+            candidate = candidate.concat(DATA[near_stop[i][1]]);
+          }
+        }
+        resolve(1);
+      });
+  }
+
+  var promises = {
+    doTaskA: function() {
+      return getPosition().then();
+    },
+      doTaskB: function() {
+        return getNearStop().then();
+      },
+      doTaskC: function() {
+        return initCycleAPI().then();
+      },
+
+      doTaskD: function() {
+        return getCandidate().then();
+      },
+      doTaskE: function() {
+        return showResult().then();
+      }
+  };
+
+    function main(){
+       sequenceTasks([promises.doTaskA, promises.doTaskB,promises.doTaskC,promises.doTaskD,promises.doTaskE]);
+    }
+</script>
+<!-- <script type="text/javascript" src="./test.js"></script> -->
+</body>
+</html>
+</script>
+<!-- <script type="text/javascript" src="./test.js"></script> -->
+</body>
+</html>

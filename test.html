@@ -1,0 +1,35 @@
+<html>
+<style>
+/* ラジオボタンは非表示にする */
+input[type=radio] {
+  display: none; 
+}
+/* チェックされた時のスタイル */
+input[type="radio"]:checked + label {
+  background: #0063A4;
+  color: #FFF; 
+}
+/* マウスオーバーしたときのスタイル */
+.label:hover {
+  background-color: #E2EDF9; 
+}
+/* lableのスタイル */
+.label {
+  color: #000;
+  border: #dddddd solid 2px;
+  display: block;
+  height: 45px;
+  line-height: 45px;
+  padding-left: 20px;
+  padding-right: 20px;
+  cursor: pointer; 
+}
+</style>
+<body>
+  <input type="radio" name="radio02" class="radio02-input" id="radio02-01">
+  <label for="radio02-01">ラジオ01</label>
+  <input type="radio" name="radio02" class="radio02-input" id="radio02-02">
+  <label for="radio02-02">ラジオ02</label>
+  <input type="radio" name="radio02" class="radio02-input" id="radio02-03">
+  <label for="radio02-03">ラジオ03</label>
+</body>

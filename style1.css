@@ -1,0 +1,46 @@
+.square_btn{
+    display: inline-block;
+    font-size: 1.4em;
+    padding: 0.5em 1em;
+    text-decoration: none;
+    background: #668ad8;/*ボタン色*/
+    color: #FFF;
+    border-bottom: solid 4px #627295;
+    border-radius: 3px;
+}
+.square_btn:active {/*ボタンを押したとき*/
+    -ms-transform: translateY(4px);
+    -webkit-transform: translateY(4px);
+    transform: translateY(4px);/*下に動く*/
+    border-bottom: none;/*線を消す*/
+}
+/* ラジオボタンは非表示にする */
+input[type=radio] {
+  display: none; 
+}
+/* チェックされた時のスタイル */
+input[type="radio"]:checked + label {
+  background: #0063A4;
+  color: #FFF; 
+}
+.label:hover {
+    background-color: #E2EDF9;  /* マウスオーバー時の背景色を指定する */ 
+}
+
+.label {
+    display: block;     /* ブロックレベル要素化する */ 
+    padding-left: 5px;  /* ボックス内左側の余白を指定する */
+    padding-right: 5px; /* ボックス内御右側の余白を指定する */
+    color: #b20000;         /* フォントの色を指定 */
+    text-align: center; /* テキストのセンタリングを指定する */
+    cursor: pointer;        /* マウスカーソルの形（リンクカーソル）を指定する */
+    border: 2px solid #006DD9;/* ボックスの境界線を実線で指定する */
+    border-radius: 5px;     /* 角丸を指定する */
+}
+
+ul li{
+  float: left;
+  list-style: none;
+  padding: 5px;
+}
+
